@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+  <head lang="en">
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
+    />
+    <title>Fairness</title>
+    <link href="styles/matchgame.css" rel="stylesheet" />
+    <link href="styles/bootstrap.min.css" rel="stylesheet" />
+  </head>
+  <body>
+    <script type="text/javascript" src="scripts/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="scripts/sha256.js"></script>
+    <script type="text/javascript" src="scripts/bsv.browser.min.js"></script>
+    <script type="text/javascript" src="scripts/bootstrap.min.js"></script>
+    <div>
+      <div class="panel panel-default">
+        <div class="panel-heading">Server Secret Key Hash Chain</div>
+        <div class="panel-body">
+          <div id="pre-secret-keys" style="text-align: left"></div>
+          <div class="input-group" style="width: 100%">
+            <span class="input-group-addon" id="basic-addon1">Secret Key</span>
+            <input
+              id="secretKey"
+              type="text"
+              class="form-control"
+              placeholder="Secret Key"
+              aria-describedby="basic-addon1"
+            />
+          </div>
+          <button
+            class="btn btn-default"
+            type="submit"
+            style="margin-top: 20px"
+            onclick="updateSecretKey()"
+          >
+            Update
+          </button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel panel-default">
+        <div class="panel-heading">Player Sigature</div>
+        <div class="panel-body">
+          <div class="input-group" style="width: 100%">
+            <span class="input-group-addon" id="basic-addon1">message</span>
+            <input
+              id="message"
+              type="text"
+              class="form-control"
+              placeholder="Message"
+              aria-describedby="basic-addon1"
+            />
+          </div>
+          <div class="input-group" style="width: 100%">
+            <span class="input-group-addon" id="basic-addon1">address</span>
+            <input
+              id="address"
+              type="text"
+              class="form-control"
+              placeholder="Address"
+              aria-describedby="basic-addon1"
+            />
+          </div>
+          <div class="input-group" style="width: 100%">
+            <span class="input-group-addon" id="basic-addon1">signature</span>
+            <input
+              id="sig"
+              type="text"
+              class="form-control"
+              placeholder="Signature"
+              aria-describedby="basic-addon1"
+            />
+          </div>
+          <button
+            class="btn btn-default"
+            type="submit"
+            style="margin-top: 20px"
+            onclick="verifySignature()"
+          >
+            Verify
+          </button>
+          <div id="sig-verify-result" />
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel panel-default" style="margin-top: 20px">
+        <div class="panel-heading">
+          Random Seed = sha256(Signature+Secret Key)
+        </div>
+        <div class="panel-body">
+          <div id="sig"></div>
+          <div id="seed"></div>
+          <div class="container-fluid">
+            <div class="row" id="poker-container"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+      function updateSecretKey(isFirstRun) {
+        var _key = $("#secretKey").val();
+        var _strs = [];
+        var nextHash = _key;
+        for (var i = 0; i < 3; i++) {
+          nextHash = sha256_digest(nextHash);
+          _strs.push("<p>prev key:" + nextHash + "</p>");
+        }
+        _strs.push("<p>prev key:...</p>");
+
+        $("#pre-secret-keys").html(_strs.reverse().join(""));
+        if (!isFirstRun) {
+          calculateSeed();
+        }
+      }
+
+      function verifySignature(isFirstRun) {
+        var msg = $("#message").val();
+        var address = $("#address").val();
+        var sig = $("#signature").val();
+        let success = bsv.Message.verify(msg, address, sig);
+        if (success) {
+          $("#sig-verify-result").html(
+            '<div class="alert alert-success" role="alert">Verify Success</div>'
+          );
+        } else {
+          $("#sig-verify-result").html(
+            '<div class="alert alert-danger" role="alert">Verify Failed</div>'
+          );
+        }
+        if (!isFirstRun) {
+          calculateSeed();
+        }
+      }
+
+      function calculateSeed() {
+        var signature = $("#signature").val();
+        var secretKey = $("#secretKey").val();
+        var str = sha256_digest(signature + secretKey);
+        var seed = str.slice(0, 8);
+
+        $("#seed").html(
+          "<p>sha256(" +
+            signature +
+            secretKey +
+            ")=" +
+            str +
+            "</p><h1>the random seed is " +
+            seed +
+            "</h1>"
+        );
+
+        var $card = $(".card");
+        for (var i = 1; i < 52; i++) {
+          $card.clone().appendTo($("#cards"));
+        }
+        shuffle(parseInt(seed, 16));
+      }
+
+      function getQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) return unescape(r[2]);
+        return null;
+      }
+
+      const br = Math.pow(2, 32) - 1;
+      function random() {
+        const next = (1103515245 * randomseed + 123456789) % br;
+        randomseed = next;
+        return next / br;
+      }
+
+      function randomSort(arr) {
+        for (var i = 0, l = arr.length; i < l; i++) {
+          var rc = Math.floor(random() * l);
+          const empty = arr[i];
+          arr[i] = arr[rc];
+          arr[rc] = empty;
+        }
+        return arr;
+      }
+
+      function shuffle(seed) {
+        var deckList = [];
+        const suitNames = ["spade", "heart", "diamond", "club"];
+        for (var pip = 0; pip < 13; ++pip) {
+          for (var suit = 0; suit < 4; ++suit) {
+            deckList.push({ suit: suit, pip });
+          }
+        }
+        if (seed) {
+          randomseed = seed;
+          randomSort(deckList);
+          randomSort(deckList);
+        }
+
+        let contentStr = "";
+        deckList.forEach((v) => {
+          let imgName =
+            '<img class="poker" src="images/poker/' +
+            suitNames[v.suit] +
+            "_" +
+            (v.pip == 0 ? 14 : v.pip + 1) +
+            '.png"/>';
+          console.log(imgName);
+          contentStr += imgName;
+        });
+        $("#poker-container").html(contentStr);
+      }
+
+      function clickSubmit() {
+        shuffle(parseInt(document.getElementById("seed").value));
+      }
+
+      $(function () {
+        const key = getQueryString("key");
+        const msg = getQueryString("msg");
+        const address = getQueryString("addr");
+        const sig = getQueryString("sig");
+
+        $("#secretKey").val(key);
+        $("#message").val(msg);
+        $("#address").val(address);
+        $("#signature").val(sig);
+
+        updateSecretKey();
+        verifySignature();
+        calculateSeed();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+body {
+  text-align: center;
+  background-image: url("../images/bg.jpg");
+}
+
+.panel {
+  display: flex;
+  align-items: left;
+  flex-direction: column;
+  margin: 20px;
+}
+
+.btn {
+  margin: 10px;
+}
+
+#form {
+  left: 0px;
+  top: 0px;
+  position: absolute;
+}
+#seed {
+  word-break: break-all;
+}
+
+#seed {
+  width: 100%;
+}
+#cards {
+  transform: scale(1);
+}
+.poker {
+  width: 80px;
+  height: 108px;
+}
+
+.front {
+  background: #999 url("../images/deck.png") 0 -564px;
+  z-index: 10;
+}
