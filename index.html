@@ -68,7 +68,7 @@
           <div class="input-group" style="width: 100%">
             <span class="input-group-addon" id="basic-addon1">signature</span>
             <input
-              id="sig"
+              id="signature"
               type="text"
               class="form-control"
               placeholder="Signature"
@@ -188,11 +188,12 @@
       function shuffle(seed) {
         var deckList = [];
         const suitNames = ["spade", "heart", "diamond", "club"];
-        for (var pip = 0; pip < 13; ++pip) {
+        for (var pip = 2; pip <= 14; ++pip) {
           for (var suit = 0; suit < 4; ++suit) {
             deckList.push({ suit: suit, pip });
           }
         }
+        deckList.sort((a, b) => a.seq - b.seq);
         if (seed) {
           randomseed = seed;
           randomSort(deckList);
@@ -205,7 +206,7 @@
             '<img class="poker" src="images/poker/' +
             suitNames[v.suit] +
             "_" +
-            (v.pip == 0 ? 14 : v.pip + 1) +
+            v.pip +
             '.png"/>';
           console.log(imgName);
           contentStr += imgName;
